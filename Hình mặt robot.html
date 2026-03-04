@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Robot Mặt - Visualizer Âm Thanh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0e1a;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.05) 0%, transparent 60%),
+                              radial-gradient(ellipse at 80% 20%, rgba(124,58,237,0.07) 0%, transparent 50%),
+                              repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,212,255,0.03) 40px),
+                              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,212,255,0.03) 40px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .robot-wrapper { position: relative; }
+        .scan-line {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            border-radius: 2px; pointer-events: none; z-index: 10;
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .robot-container {
+            width: 380px; max-width: 95vw;
+            background: linear-gradient(160deg, #1a2332 0%, #111827 60%, #0d1520 100%);
+            border-radius: 50px 50px 35px 35px; padding: 30px 18px 40px;
+            border: 2px solid #1e3a5f;
+            box-shadow: 0 0 0 1px rgba(0,212,255,0.3), 0 0 30px rgba(0,212,255,0.15),
+                        0 20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .robot-container::before, .robot-container::after {
+            content: ''; position: absolute; width: 20px; height: 20px;
+            border-color: #00d4ff; border-style: solid; opacity: 0.4;
+        }
+        .robot-container::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+        .robot-container::after { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+        .antenna-group {
+            position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .antenna-ball {
+            width: 18px; height: 18px;
+            background: radial-gradient(circle at 40% 35%, #fff8, #00d4ff);
+            border-radius: 50%;
+            box-shadow: 0 0 12px #00d4ff, 0 0 30px rgba(0,212,255,0.6);
+        }
+        .antenna-stem { width: 6px; height: 36px; background: linear-gradient(to bottom, #00d4ff, #005a8e); border-radius: 3px; }
+
+        .eyes { display: flex; justify-content: space-around; margin: 15px 0 18px; }
+        .eye {
+            width: 100px; height: 100px;
+            background: radial-gradient(circle at 30% 30%, #eef4ff, #c8d8f0);
+            border-radius: 50%; border: 3px solid #1e3a5f;
+            display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3), 0 0 15px rgba(0,212,255,0.4);
+        }
+        .pupil {
+            width: 42px; height: 42px;
+            background: radial-gradient(circle at 35% 35%, #00d4ff, #003366);
+            border-radius: 50%; position: absolute; transition: transform 0.2s ease;
+            box-shadow: 0 0 10px rgba(0,212,255,0.7);
+        }
+        .pupil::after {
+            content: ''; position: absolute; top: 6px; left: 8px; width: 10px; height: 10px;
+            background: rgba(255,255,255,0.6); border-radius: 50%;
+        }
+
+        .nose-wrapper { display: flex; justify-content: center; margin: 0 auto 18px; }
+        .nose {
+            width: 52px; height: 52px;
+            background: radial-gradient(circle at 40% 35%, #ff7733, #c0380a);
+            border-radius: 50%; border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: 0 6px 0 #7a1e00, 0 8px 15px rgba(0,0,0,0.5); position: relative;
+        }
+        .nose::after {
+            content: ''; position: absolute; inset: 4px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.4), transparent 60%);
+        }
+
+        /* Khu vực hiển thị sóng âm thay cho miệng */
+        .sound-wave {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 4px;
+            height: 70px;
+            margin: 10px 0 25px;
+            padding: 0 10px;
+        }
+        .wave-bar {
+            width: 12px;
+            background: linear-gradient(to top, #00d4ff, #7c3aed);
+            border-radius: 6px 6px 0 0;
+            height: 10px;
+            transition: height 0.03s ease;
+            box-shadow: 0 0 8px #00d4ff;
+        }
+
+        .volume-bar-container {
+            width: 200px; height: 20px; background: #111; border: 1px solid #00d4ff; border-radius: 10px;
+            margin-top: 20px; overflow: hidden;
+        }
+        .volume-bar-fill {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #00d4ff, #7c3aed); transition: width 0.03s linear;
+        }
+        .debug-note {
+            color: #64748b; font-size: 11px; margin-top: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="robot-wrapper">
+    <div class="scan-line"></div>
+    <div class="antenna-group">
+        <div class="antenna-ball" id="antennaBall"></div>
+        <div class="antenna-stem"></div>
+    </div>
+    <div class="robot-container">
+        <div class="eyes">
+            <div class="eye"><div class="pupil" id="leftPupil"></div></div>
+            <div class="eye"><div class="pupil" id="rightPupil"></div></div>
+        </div>
+        <div class="nose-wrapper"><div class="nose"></div></div>
+        
+        <!-- Thay miệng bằng dải sóng âm -->
+        <div class="sound-wave" id="soundWave"></div>
+    </div>
+</div>
+<div class="volume-bar-container">
+    <div class="volume-bar-fill" id="volumeBar"></div>
+</div>
+<div class="debug-note" id="debugNote">Đang yêu cầu micro...</div>
+
+<script>
+    (function() {
+        // === Cấu hình ===
+        const NUM_BARS = 16;               // Số cột sóng âm
+        const SMOOTHING = 0.8;              // Làm mượt dữ liệu
+        const VOLUME_THRESHOLD = 2;          // Ngưỡng im lặng
+        const MIN_BAR_HEIGHT = 4;            // Chiều cao tối thiểu khi im lặng
+        const MAX_BAR_HEIGHT = 60;           // Chiều cao tối đa khi có âm thanh lớn
+
+        let eyeTimer, volumeInterval, audioContext, analyser, source, stream;
+        let isMicActive = false;
+        let frequencyData = new Uint8Array(NUM_BARS); // Dữ liệu tần số
+
+        // Tạo các cột sóng âm
+        function createWaveBars() {
+            const waveContainer = document.getElementById('soundWave');
+            waveContainer.innerHTML = '';
+            for (let i = 0; i < NUM_BARS; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'wave-bar';
+                bar.id = `waveBar${i}`;
+                waveContainer.appendChild(bar);
+            }
+        }
+
+        // Cập nhật chiều cao các cột dựa trên dữ liệu tần số
+        function updateWaveBars() {
+            for (let i = 0; i < NUM_BARS; i++) {
+                const bar = document.getElementById(`waveBar${i}`);
+                if (!bar) continue;
+                // Giá trị từ 0-255, map sang chiều cao
+                let rawValue = frequencyData[i] || 0;
+                // Áp dụng ngưỡng: nếu dưới ngưỡng thì coi như im lặng
+                let height = MIN_BAR_HEIGHT;
+                if (rawValue > VOLUME_THRESHOLD) {
+                    height = MIN_BAR_HEIGHT + (rawValue / 255) * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
+                }
+                bar.style.height = height + 'px';
+            }
+        }
+
+        // Cập nhật thanh volume (trung bình các tần số)
+        function updateVolumeBar() {
+            let sum = 0;
+            for (let i = 0; i < NUM_BARS; i++) sum += frequencyData[i];
+            let avg = sum / NUM_BARS;
+            const bar = document.getElementById('volumeBar');
+            if (bar) {
+                let percent = (avg / 255) * 100;
+                bar.style.width = percent + '%';
+            }
+            document.getElementById('debugNote').innerText = `Âm lượng TB: ${Math.round(avg)}/255`;
+        }
+
+        // === Micro và phân tích ===
+        async function startListening() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 64;               // Số lượng bin tần số (32 bin vì fftSize/2)
+                analyser.smoothingTimeConstant = SMOOTHING;
+                const bufferLength = analyser.frequencyBinCount; // = fftSize/2 = 32
+                // Chúng ta chỉ lấy 16 cột đầu (tần số thấp và trung)
+                frequencyData = new Uint8Array(bufferLength);
+
+                source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                isMicActive = true;
+                console.log('Micro OK');
+
+                // Vòng lặp đọc dữ liệu tần số
+                function readFrequency() {
+                    analyser.getByteFrequencyData(frequencyData);
+                    // Cập nhật các cột sóng (chỉ lấy 16 cột đầu, nếu bufferLength < 16 thì dùng toàn bộ)
+                    updateWaveBars();
+                    updateVolumeBar();
+                }
+
+                // Đọc theo chu kỳ để tối ưu
+                volumeInterval = setInterval(readFrequency, 50);
+            } catch (err) {
+                console.error('Lỗi micro:', err);
+                document.getElementById('debugNote').innerText = '❌ Không có quyền micro';
+            }
+        }
+
+        function stopListening() {
+            if (volumeInterval) clearInterval(volumeInterval);
+            if (source) source.disconnect();
+            if (audioContext) audioContext.close();
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            isMicActive = false;
+        }
+
+        // === Chuyển động mắt ===
+        function startEyes() {
+            eyeTimer = setInterval(() => {
+                const x = (Math.random() * 28 - 14) + 'px';
+                const y = (Math.random() * 18 - 9) + 'px';
+                document.getElementById('leftPupil').style.transform = `translate(${x}, ${y})`;
+                document.getElementById('rightPupil').style.transform = `translate(${x}, ${y})`;
+                if (Math.random() < 0.18) blink();
+            }, 450);
+        }
+
+        function blink() {
+            document.querySelectorAll('.eye').forEach(e => {
+                e.style.transform = 'scaleY(0.08)';
+                setTimeout(() => e.style.transform = '', 130);
+            });
+        }
+
+        // === Khởi động ===
+        window.addEventListener('load', () => {
+            createWaveBars();
+            startEyes();
+            startListening();
+        });
+
+        window.addEventListener('beforeunload', () => {
+            clearInterval(eyeTimer);
+            stopListening();
+        });
+    })();
+</script>
+</body>
+</html>
